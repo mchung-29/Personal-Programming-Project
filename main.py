@@ -1,4 +1,7 @@
 ## Personal Programming Project -- Martin Chung
+import random 
+from colorist import ColorRGB, BgColorRGB
+dusty_pink = ColorRGB(194, 145, 164)f
 def startup():
     intro()
     get_pnum()
@@ -26,9 +29,9 @@ def get_pnum():
 def turn():
     roll()
     move()
-
 def roll():
-    pass
+    roll_num = random.randint(1,6)
+    roll_num2 = random.randint(1,6)
 def prison():
     pass
 def move():
@@ -37,5 +40,6 @@ def main():
     startup()
     turn()
 def prop_tile():
-    pass
+    check_owned()
+
 main()
