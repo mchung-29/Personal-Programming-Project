@@ -1,5 +1,5 @@
 ## Personal Programming Project -- Martin Chung
-import random, time, pygame, threading
+import random, time, pygame
 from colorist import ColorRGB, BgColorRGB, rgb, bg_rgb  
 from time import sleep
 
@@ -8,16 +8,15 @@ def main():
     turn()
 
 def startup(): ##setup before game starts
-    bgm()
+    ##bgm()
     intro()
-    money_assign()
     game_style = bot_player()
     if game_style == "multiplayer":
         players = get_pnum()
-        return players
     elif game_style == "bots":
-        bots = 3
-        return bots
+        players = 4
+    var_assign(players)
+
 def gold(string):
     rgb(string, 255, 204, 0)
 
@@ -75,9 +74,37 @@ ____________________________________________________\n""", 255, 0, 0)
 ____________________________________________________\n""", 255, 0, 0)
     return pnum
 
-def money_assign():
+def var_assign(players):
+    players_data = []
+    rem_op = ["1","2","3","4","5","6"]
     p1m = p2m = p3m = p4m = 1500
-    print(p3m)
+    player_icons = ["🚢🟦", "🐈🟧", "🎩🟨","🐕🟩","🚙🟥","🐎🟪"]
+    for i in range(0, players):
+        valid = False
+        print(player_icons)
+        while valid == False:
+            try: 
+                rgb(f"Player {i+1},Please choose a character by inputting a number! You will also have an assigned color.", 255, 204, 0)
+                char = int(input())
+            except ValueError:
+                rgb(f"""Please enter one of the following numbers {rem_op}.
+________________________________________________________________________________________________________\n""", 255, 0, 0)
+            else:
+                if str(char) in rem_op:
+                    rem_op.pop(char-1)
+                    pdata = {
+                        "money" : 1500,
+                        "icon" : player_icons[char-1][0],
+                        "color" : player_icons[char-1][1]
+                    }
+                    players_data.append(pdata)
+                    gold("--------------------------------------------------------------------------------------------------\n\n")
+                    print(players_data[i]["color"])
+                    valid = True
+                else:
+                    rgb(f"""Please enter a number below or equal to {rem_op}.
+________________________________________________________________________________________________________\n""", 255, 0, 0)
+
 def turn(): ##process of a turn
     roll()
     move()
