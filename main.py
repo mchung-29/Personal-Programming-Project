@@ -10,29 +10,53 @@ def main():
 def startup(): ##setup before game starts
     bgm()
     intro()
-    players = get_pnum()
+    money_assign()
+    game_style = bot_player()
+    if game_style == "multiplayer":
+        players = get_pnum()
+        return players
+    elif game_style == "bots":
+        bots = 3
+        return bots
+def gold(string):
+    rgb(string, 255, 204, 0)
+
+def green(string):
+    rgb(string, 170, 255, 0)
 
 def intro(): ##prints the game title
-    rgb("""Welcome user, to
-████████╗███████╗██████╗░███╗░░░███╗██╗███╗░░██╗░█████╗░██╗░░░░░
+    gold("Welcome user, to")
+    gold("""████████╗███████╗██████╗░███╗░░░███╗██╗███╗░░██╗░█████╗░██╗░░░░░
 ╚══██╔══╝██╔════╝██╔══██╗████╗░████║██║████╗░██║██╔══██╗██║░░░░░
 ░░░██║░░░█████╗░░██████╔╝██╔████╔██║██║██╔██╗██║███████║██║░░░░░
 ░░░██║░░░██╔══╝░░██╔══██╗██║╚██╔╝██║██║██║╚████║██╔══██║██║░░░░░
 ░░░██║░░░███████╗██║░░██║██║░╚═╝░██║██║██║░╚███║██║░░██║███████╗
-░░░╚═╝░░░╚══════╝╚═╝░░╚═╝╚═╝░░░░░╚═╝╚═╝╚═╝░░╚══╝╚═╝░░╚═╝╚══════╝""", 255, 204, 0), rgb("""
+░░░╚═╝░░░╚══════╝╚═╝░░╚═╝╚═╝░░░░░╚═╝╚═╝╚═╝░░╚══╝╚═╝░░╚═╝╚══════╝""")
+    time.sleep(0.5)
+    green("""
 ███╗░░░███╗░█████╗░███╗░░██╗░█████╗░██████╗░░█████╗░██╗░░░░░██╗░░░██╗
 ████╗░████║██╔══██╗████╗░██║██╔══██╗██╔══██╗██╔══██╗██║░░░░░╚██╗░██╔╝
 ██╔████╔██║██║░░██║██╔██╗██║██║░░██║██████╔╝██║░░██║██║░░░░░░╚████╔╝░
 ██║╚██╔╝██║██║░░██║██║╚████║██║░░██║██╔═══╝░██║░░██║██║░░░░░░░╚██╔╝░░
 ██║░╚═╝░██║╚█████╔╝██║░╚███║╚█████╔╝██║░░░░░╚█████╔╝███████╗░░░██║░░░
 ╚═╝░░░░░╚═╝░╚════╝░╚═╝░░╚══╝░╚════╝░╚═╝░░░░░░╚════╝░╚══════╝░░░╚═╝░░░
-""", 170, 255, 0)
+""")
 
 def bgm():  ## backgound music
     pygame.mixer.init()
     pygame.mixer.music.set_volume(1) ## change volume if needed but I doubt it
     pygame.mixer.music.load("playlist.mp3")
-    pygame.mixer.music.play()
+    pygame.mixer.music.play(loops=-1) ## loops forever (-1)
+
+def bot_player(): ##asks the player if they want to play multiplayer on one screen or vs bots
+    lock = True
+    while lock == True:
+        game_style = input("Would you like to play multiplayer or vs bots?\n").lower()
+        if game_style == "multiplayer" or game_style == "bots":
+            lock = False
+        else:
+            rgb("""Please enter either 'multiplayer' or 'bots'.\n____________________________________________________\n""", 255, 0, 0)
+    return game_style
 
 def get_pnum(): ## gets number of players
     valid = False
@@ -51,6 +75,9 @@ ____________________________________________________\n""", 255, 0, 0)
 ____________________________________________________\n""", 255, 0, 0)
     return pnum
 
+def money_assign():
+    p1m = p2m = p3m = p4m = 1500
+    print(p3m)
 def turn(): ##process of a turn
     roll()
     move()
@@ -70,5 +97,6 @@ def prop_tile(): ## what happens when you land on a property tile
 
 def check_owned(): ## checks if a property tile is owned
     pass
-
+def botactions():
+    pass
 main()
