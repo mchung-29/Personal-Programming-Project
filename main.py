@@ -11,15 +11,11 @@ def startup(): ##setup before game starts
     pygame.mixer.init()
     pygame.mixer.music.set_volume(0.5) ## change volume if needed but I doubt it
     clear_screen()
-    #bgm() 
+    lobbybgm()
     intro()
-    game_style = bot_player()
-    if game_style == "multiplayer":
-        playercount = get_pnum()
-    elif game_style == "bots":
-        playercount = 1
-        bots = 3
+    playercount = get_pnum()
     players_data, namelist = var_assign(playercount)
+    gamebgm()
     return players_data, namelist, playercount
 
 def intro(): ##prints the game title
@@ -44,22 +40,15 @@ def intro(): ##prints the game title
     slow_print(" " * 21 + "<PRESS ENTER TO PLAY>")
     input()
 
-def bgm():  ## backgound music
-    pygame.mixer.music.load("playlist.mp3")
+def lobbybgm():  ## backgound music
+    pygame.mixer.init()
+    pygame.mixer.music.set_volume(0.5)
+    pygame.mixer.music.load("FE2Lobby.mp3")
     pygame.mixer.music.play(loops=-1) ## loops forever (-1)
 
-def bot_player(): ##asks the player if they want to play multiplayer on one screen or vs bots
-    clear_screen()
-    lock = True
-    while lock == True:
-        orange("Would you like to play multiplayer or vs bots?")
-        game_style = input().lower()
-        if game_style == "multiplayer" or game_style == "bots":
-            lock = False
-        else:
-            clear_screen()
-            red("""Please enter either 'multiplayer' or 'bots'.\n____________________________________________________\n""")
-    return game_style
+def gamebgm():
+    pygame.mixer.music.load("playlist.mp3")
+    pygame.mixer.music.play(loops=-1)
 
 def get_pnum(): ## gets number of players
     clear_screen()
@@ -102,7 +91,7 @@ def var_assign(playercount): ## character and name selection
             else:
                 red("Your name cannot be empty or solely contain spaces!")
         while icon_valid == False:
-            green("\n---ICON AND color SELECTION---")
+            green("\n---ICON AND COLOR SELECTION---")
             slow_print("Choose a number to select your icon.")
             for indx in range(len(rem_op)):
                 print(f"{rem_op[indx]}: {player_icons[indx]}")
@@ -132,6 +121,7 @@ def var_assign(playercount): ## character and name selection
             except ValueError:
                 red(f"Please pick a number from the list.")
     clear_screen()
+    pygame.mixer.music.fadeout(5000)
     slow_print("Selection Complete.") 
     time.sleep(1)
     slow_print("Let the game begin!")
@@ -144,20 +134,22 @@ def var_assign(playercount): ## character and name selection
 
 def game(players_data, playerlist, playercount):
     board_data = board_dinit()
+    bankrupt = []
     game_running = True     ## will change when I implement checking for no remaining players
     while game_running == True:
         for i in range(playercount):
             curr_pdata = players_data[i]
             curr_pname = playerlist[i]
             turn(curr_pname, playercount, curr_pdata, board_data, players_data)
-            check_win(playerlist)
+            check_bankrupt(curr_pdata)
+            check_win(playerlist, curr_pname)
 
 def turn(curr_pname, playercount, curr_pdata, board_data, players_data): ##process of a turn
     doubles_count = 0
     turn_active = True
     while turn_active == True:
         clear_screen()
-        printboard()
+        printboard(curr_pdata, board_data, players_data)
         print_money(players_data, playercount)
         if curr_pdata["jail"] == True:
             jail_turn(curr_pdata, board_data, players_data)
@@ -173,7 +165,6 @@ def turn(curr_pname, playercount, curr_pdata, board_data, players_data): ##proce
             else:
                 gold("You get to roll again!")
         move(roll_total, curr_pdata, board_data, players_data)
-        check_bankrupt(curr_pdata)
         if is_doubles == False:
             turn_active = False
 
@@ -210,7 +201,7 @@ def roll(): ## getting numbers from rolling 2 dice
     roll_num2 = random.randint(1,6)
     roll_total = roll_num + roll_num2
     purple(f"You rolled a {roll_num} and a {roll_num2}!")
-    time.sleep(1)
+    time.sleep(0.5)
     if roll_num == roll_num2:
         green("🄳 🄾 🅄 🄱 🄻 🄴 🅂 !")
         is_doubles = True
@@ -220,7 +211,7 @@ def roll(): ## getting numbers from rolling 2 dice
 
 def prison(curr_pdata): ##sends someone to prison instantly
     sound("prisonsfx.mp3")
-    red("Go to Jail. Go directly to jail, do not pass Go, do not collect £200")
+    red("Go to Jail. Go directly to jail, do not pass Go, do not collect 200$")
     time.sleep(1)
     slow_print("You are now in prison. You can either roll for doubles or use a jail free card if you have any.")
     time.sleep(1)
@@ -277,24 +268,25 @@ def move(roll_total, curr_pdata, board_data, players_data): ## moves someone to 
     blue(f"You are now on {tile_name}! Press enter to proceed.")
     input()
     if tile_type == "property" or tile_type == "railroad" or tile_type == "utility":
-        prop_tile(curr_pdata, curr_tile, players_data, board_data)
+        utilcard = False
+        prop_tile(roll_total, curr_pdata, curr_tile, players_data, board_data, utilcard)
     elif tile_type == "tax":
         orange(f"Tax square! Paying {curr_tile["price"]}$. Press enter to proceed.")
         input()
         curr_pdata["money"] -= curr_tile["price"]
     elif tile_type == "card":
-        card_tile(curr_pdata, curr_tile, players_data, board_data)
+        card_tile(curr_pdata, curr_tile, players_data, board_data, roll_total)
     else:
-        special_tile(curr_pdata, curr_tile, players_data)
+        special_tile(curr_pdata, curr_tile)
 
-def prop_tile(curr_pdata, curr_tile, players_data, board_data): ## what happens when you land on a property tile
+def prop_tile(roll_total, curr_pdata, curr_tile, players_data, board_data, utilcard): ## what happens when you land on a property tile
     owned = check_owned(curr_tile)
     if owned == True:
         if curr_tile["owner"] == curr_pdata["name"]:
             if curr_tile["type"] == "property":
                 buy_house(curr_pdata, curr_tile)
         else:
-            trespassing(curr_pdata, curr_tile, players_data, board_data)
+            trespassing(roll_total, curr_pdata, curr_tile, players_data, board_data, utilcard)
     else:
         buy_prop(curr_pdata, curr_tile)
 
@@ -305,6 +297,7 @@ def buy_prop(curr_pdata, curr_tile): ## allows the player to buy the tile if its
         if choice == "buy":
             curr_pdata["money"] -= curr_tile["price"]
             curr_tile["owner"] = curr_pdata["name"]
+            sound("money.mp3")
             green(f"Success! You now own {curr_tile["name"]}!")
             if curr_tile["type"] == "railroad":
                 curr_pdata["trains"] += 1
@@ -342,11 +335,16 @@ def check_owned(curr_tile): ## checks if a property tile is owned
     else:
         return True
 
-def trespassing(curr_pdata, curr_tile, players_data, board_data): ## deducts money when they land on an owned tile
+def trespassing(roll_total, curr_pdata, curr_tile, players_data, board_data, utilcard): ## deducts money when they land on an owned tile
     fee = curr_tile["rent"]
     owner = curr_tile["owner"]
     red("!!Trespassing!!")
-    if curr_tile["type"] == "property" and curr_tile["houses"] == 0:
+    if curr_tile["type"] == "utility":
+        if util_check(board_data, curr_pdata) == True or utilcard == True:
+            fee = roll_total * 10
+        else:
+            fee = roll_total * 4
+    elif curr_tile["type"] == "property" and curr_tile["houses"] == 0:
         if full_set(curr_pdata, curr_tile, board_data) == True:
             fee *= 2
             orange("Full set bonus! Rent is doubled because the owner has the full set and has no houses on this tile!")
@@ -361,27 +359,35 @@ def trespassing(curr_pdata, curr_tile, players_data, board_data): ## deducts mon
     blue("Press enter to proceed.")
     input()
 
-def full_set(curr_pdata, curr_tile, board_data):
-    tile_color = curr_tile["color"]
-    if tile_color == None:
+def util_check(board_data, curr_pdata):
+    if board_data[12]["owner"] == curr_pdata["name"] and board_data[28]["owner"] == curr_pdata["name"]:
+        return True
+    else:
         return False
+
+
+def full_set(curr_pdata, curr_tile, board_data):
+    if "color" not in curr_tile:
+        return False
+    tile_color = curr_tile["color"]
     color_set = []
     for tile in board_data:
-        if tile["color"] == tile_color:
-            color_set.append(tile)
+        if "color" in tile:
+            if tile["color"] == tile_color:
+                color_set.append(tile)
     for i in color_set:
-        if curr_tile["owner"] != curr_pdata["name"]:
+        if i["owner"] != curr_pdata["name"]:
             return False
     return True
 
-def card_tile(curr_pdata, curr_tile, players_data, board_data): ## determines what card they pull and if its from a comm chest or chance
+def card_tile(curr_pdata, curr_tile, players_data, board_data, roll_total): ## determines what card they pull and if its from a comm chest or chance
     sound("card.mp3")
     if "Community Chest" in curr_tile["name"]:
-        comm_chest(curr_pdata, curr_tile, players_data, board_data)
+        comm_chest(curr_pdata, players_data, board_data)
     else:
-        chance(curr_pdata, curr_tile, players_data, board_data)
+        chance(curr_pdata, curr_tile, players_data, board_data, roll_total)
 
-def chance(curr_pdata, curr_tile, players_data, board_data):
+def chance(curr_pdata, curr_tile, players_data, board_data, roll_total):
     card = random.randint(1, 6)
     position = curr_pdata["position"]
     slow_print("You drew a card from the chance deck...")
@@ -389,58 +395,202 @@ def chance(curr_pdata, curr_tile, players_data, board_data):
         yellow("Advance to GO! Collect 200$.")
         pass_go(curr_pdata)
         position = 0
+        return
     elif card == 2:
-        print("Advance to Bidoof Valley. Get 200$ if you pass GO.")
-        current = curr_pdata["position"]
-        distance = (24 - current) % 40
+        red("Advance to Bidoof Valley. Collect 200$ if you pass GO.")
+        distance = (24 - curr_pdata["position"]) % 40
         move(distance, curr_pdata, board_data, players_data)
+        return
+    elif card == 3:
+        blue("Advance to Hallfair.")
+        curr_pdata["position"] = 37
+        curr_tile = board_data[37]
+        utilcard = False
+        prop_tile(roll_total, curr_pdata, curr_tile, players_data, board_data, utilcard)
+        return
+    elif card == 4:
+        orange("Advance to Paul Mall. Collect 200$ if you pass GO.")
+        distance = (16 - curr_pdata["position"] + 40) % 40
+        move(distance, curr_pdata, board_data, players_data)
+        return
+    elif card == 5 or card == 6:
+        curr_position = curr_pdata["position"]
+        if curr_position >= 0 and curr_position <= 10:
+            near_ts = 5
+        elif curr_position >= 11 and curr_position <= 20:
+            near_ts = 15
+        elif curr_position >= 21 and curr_position <= 30:
+            near_ts = 25
+        else:
+            near_ts = 35
+        orange("Advance to the nearest train station. If it is owned, pay double the rent!")
+        curr_pdata["position"] = near_ts
+        curr_tile = board_data[near_ts]
+        utilcard = False
+        prop_tile(roll_total, curr_pdata, curr_tile, players_data, board_data, utilcard)
+        return
+    elif card == 7:
+        if curr_position >= 0 and curr_position < 20:
+            near_ut = 12
+        else:
+            near_ut = 38
+        yellow("Advance to the nearest utility. If owned, you must pay 10x your roll amount in $.")
+        curr_pdata["position"] = near_ut
+        curr_tile = board_data[near_ut]
+        utilcard = True
+        prop_tile(roll_total, curr_pdata, curr_tile, players_data, board_data, utilcard)
+        return
+    elif card == 8:
+        gold("Bank pays you a dividend of 50$.")
+        curr_pdata["money"] += 50
+    elif card == 9:
+        gold("You get a get out of jail free card!")
+        curr_pdata["jail_cards"] += 1
+    elif card == 10:
+        orange("Go back 3 spaces!")
+        distance = -3
+        move(distance, curr_pdata, board_data, players_data)
+    elif card == 11:
+        prison(curr_pdata)
+    elif card == 12: 
+        red("Make general repairs on all your property. For each house pay 25$. For each hotel pay 100$")
+        bill = 0
+        for tile in board_data:
+            if tile["owner"] == curr_pdata["name"]:
+                if "houses" in tile:
+                    house_num = tile["houses"]
+                    if house_num == 5:
+                        bill += 100
+                    elif house_num > 0:
+                        bill += (25 * house_num)
+        curr_pdata["money"] -= bill
+        red(f"You paid {bill}$ in repair fees!")
+    elif card == 13:
+        yellow("Speeding fine! Pay 15$.")
+        curr_pdata["money"] -= 15
+    elif card == 14:
+        yellow("Take a trip to Tjiu Station. Collect $200 if you pass GO.")
+        distance = (5 - curr_pdata["position"]) % 40
+        move(distance, curr_pdata, board_data, players_data)
+        return
+    elif card == 15:
+        gold("You have been elected Chairman of the Board. Pay each player 50$.")
+        for player in players_data:
+            if player != curr_pdata["name"]:
+                slow_print(f"{curr_pdata["name"]} gave 50$!")
+                player["money"] += 50
+                curr_pdata["money"] -= 50
+        red(f"You paid {(len(players_data) - 1) * 50} in total...")
+    else:
+        green("Your building loan matures. Collect 150$!")
+        curr_pdata["money"] += 150
+    time.sleep(3)
+
+def comm_chest(curr_pdata, players_data, board_data):
+    card = random.randint(1, 16)
+    position = curr_pdata["position"]
+    slow_print("You drew a card from the chance deck...")
+    if card == 1:
+        yellow("Advance to GO! Collect 200$.")
+        pass_go(curr_pdata)
+        position = 0
+        return
+    elif card == 2:
+        magenta("Your video game 'Lankybox neighbourhood roleplay' was a success! Collect 200$.")
     elif card == 3:
         red("Doctor's Fee. Pay 50$.")
         curr_pdata["money"] -= 50
     elif card == 4:
-        green("From sale of stock you get £50.")
+        green("From sale of stock you get $50.")
         curr_pdata["money"] += 50
     elif card == 5:
         gold("You get a get out of jail free card!")
         curr_pdata["jail_cards"] += 1
     elif card == 6:
         prison(curr_pdata)
-    
-    input("Press enter to proceed.")
-
-def comm_chest(curr_pdata, curr_tile, players_data, board_data):
-    pass
+    elif card == 7:
+        green("Holiday fund matures. Recieve 100$.")
+        curr_pdata["money"] += 100
+    elif card == 8:
+        green("Income tax refund. Collect 20$.")
+        curr_pdata["money"] += 20
+    elif card == 9:
+        magenta("It's your birthday! Collect 10$ from every player.")
+        for player in players_data:
+            if player["name"] != curr_pdata["name"]:
+                slow_print(f"{player["name"]} gave 10$!")
+                player["money"] -= 10
+                curr_pdata["money"] += 10
+        magenta(f"You recieved {(len(players_data) - 1) * 10}$ from everyone!")
+    elif card == 10:
+        blue("Holiday fund matures. Recieve 100$.")
+        curr_pdata["money"] += 100
+    elif card == 11:
+        blue("Hospital fees. Pay 100$.")
+        curr_pdata["money"] -= 100
+    elif card == 12:
+        orange("School fees. Pay 50$.")
+        curr_pdata["money"] -= 50
+    elif card == 13:
+        green("Recieve 25$ of consulancy fees.")
+        curr_pdata["money"] += 25
+    elif card == 14:
+        red("You are assessed for street repairs. Pay 40$ per house. 115$ per hotel.")
+        bill = 0
+        for tile in board_data:
+            if tile["owner"] == curr_pdata["name"]:
+                if "houses" in tile:
+                    house_num = tile["houses"]
+                    if house_num == 5:
+                        bill += 115
+                    elif house_num > 0:
+                        bill += (40 * house_num)
+        curr_pdata["money"] -= bill
+        red(f"You paid {bill}$ in repair fees!")
+    elif card == 15:
+        purple("You win second prize in a beauty contest. Collect 10$.")
+        curr_pdata["money"] += 10
+    else:
+        gold("You inherit 100$!")
+        curr_pdata["money"] += 100
+    time.sleep(3)
 
 def pass_go(curr_pdata):
     curr_pdata["money"] += 200
 
-def special_tile(curr_pdata, curr_tile, players_data): ## other tiles like free parking, go to jail and just visiting
+def special_tile(curr_pdata, curr_tile): ## other tiles like free parking, go to jail and just visiting
     if curr_tile["name"] == "Go to JAIL":
         prison(curr_pdata)
     else:
         return
-    
-def botactions():
-    pass
 
-def check_win(playerlist): ##WIP
+def check_win(playerlist, curr_pname): ##WIP
     if len(playerlist) == 1:
-        win = True
-        return win
-    else:
-        pass
-    pass
+        yellow(f"CONGRATULATIONS, {curr_pname}! You are the winner of this monopoly game!!!")
+        exit()
 
 def check_bankrupt(curr_pdata):
-    pass
+    if curr_pdata["money"] < 0:
+        red(f"{curr_pdata["name"]} went bankrupt!!")
 
-def printboard():
-    light_blue("""
+def updateboard(curr_pdata, board_data, players_data, board):
+    if curr_pdata["position"] == 10 and curr_pdata["jail"] == False:
+        if board[4267] == " ":
+            board[4267] = curr_pdata["icon"]
+            board[4268] = ""
+    else:
+        board[4267] = " "
+        board[4268] = " "
+    if curr_pdata["position"] <= 9 and curr_pdata["position"] > 0:
+        pass
+def printboard(curr_pdata, board_data, players_data): ## keep in mind that there are 104 chars per line, 10 spaces wide per large square, 8 per small, 10 wide for side tiles
+    #updateboard(curr_pdata, board_data, players_data, board) #🚢🟦 🐈🟧 🎩🟨 🐕🟩 🚙🟥 🐎🟪.   6th and 7th char for replacement for free parking 
+    board = """
 _______________________________________________________________________________________________________
 |   Free   | Rathore| Chance |   Fu   | Bidoof | Farnham| Dream  |  Fox   |  Water |Fairplay|  Go to   |
 |  Parking |  Park  |   ❓   |   St.  | Valley | 🚂 Sta.| Island |   St.  | Works💧|  Ave.  |   JAIL   |
-|    🚗    |        |        |        |        |        |        |        |        |        |   🚔🚨   |
-|          |  220$  |        |  220$  |  240$  |  200$  |  260$  |  260$  |  150$  |  280$  |          |
+|          |        |        |        |        |        |        |        |        |        |          |
+|    🚗    |  220$  |        |  220$  |  240$  |  200$  |  260$  |  260$  |  150$  |  280$  |   🚔🚨   |
 |__________|________|________|________|________|________|________|________|________|________|__________|
 | Anthian  |                                                                                | Stickmin |
 |    St.   |                                                                                |   Ave.   |
@@ -454,37 +604,37 @@ ________________________________________________________________________________
 |   Chest  |                                ●●●●●●●●●●●●●●●●                                |  Chest   |
 |    🧰    |                             ●●●●●●●●●●●●●●●●●●●●●●●                            |    🧰    |
 |__________|                          ●●●●●●●●●   ●●●●                                      |__________|
-|   Paul   |                         ●●●●         ●●●●                                      |  Stardew |
-|   Mall   |                        ●●●●●         ●●●●                                      |  Valley  |
-|   180$   |                        ●●●●●         ●●●●                                      |   320$   |
+| Paul Mall|                         ●●●●         ●●●●                                      |  Stardew |
+|   180$   |                        ●●●●●         ●●●●                                      |  Valley  |
+|          |                        ●●●●●         ●●●●                                      |   320$   |
 |__________|                         ●●●●         ●●●●                                      |__________|
 | Dumfries |                          ●●●●●●●●●●●●●●●●●●●●●●●                               | McCreery |
 | 🚂 Sta.  |                              ●●●●●●●●●●●●●●●●●●●●●●                            |  🚂 Sta. |
 |   200$   |                                      ●●●●      ●●●●                            |   200$   |
 |__________|                                      ●●●●      ●●●●●                           |__________|
-|   Alvin  |                                      ●●●●      ●●●●●                           |  Chance  |
-|   Ave.   |                       ●●●●           ●●●●      ●●●●●                           |    ❓    |
-|   160$   |                       ●●●●●●        ●●●●●●●●●●●●●●●                            |          |
+|Alvin Ave.|                                      ●●●●      ●●●●●                           |  Chance  |
+|   160$   |                       ●●●●           ●●●●      ●●●●●                           |    ❓    |
+|          |                       ●●●●●●        ●●●●●●●●●●●●●●●                            |          |
 |__________|                       ●●●●●●●●●●●●●●●●●●●●●●●●●●                               |__________|
-|   Lanky  |                           ●●●●●●●●●●●●●●●●●●                                   | Hallfair |
-|   Lane.  |                                      ●●●●                                      |   400$   |
-|   140$   |                                      ●●●●                                      |          |
+|Lanky Lane|                           ●●●●●●●●●●●●●●●●●●                                   | Hallfair |
+|   140$   |                                      ●●●●                                      |   400$   |
+|          |                                      ●●●●                                      |          |
 |__________|                                                                                |__________|
 | Electric |                                                                                |Luxury Tax|
 |  Comp.💡 |                                                                                | 💍(-100) |
 |   150$   |                                                                                |          |
 |__________|                                                                                |__________|
-|   Box    |                                                                                |  Langley |
-|   St.    |                                                                                |   Inc.   |
-|   140$   |                                                                                |   400$   |
+|  Box St. |                                                                                |  Langley |
+|   140$   |                                                                                |   Inc.   |
+|          |                                                                                |   400$   |
 |__________|________________________________________________________________________________|__________|
 |   |      |  Green |  Yoyle | Chance |  Baron |  Tjiu  | Income |  Birch |  Comm. |  Paper |          |
-|   | JAIL |  Lake  |  Hotel |   ❓   |   Rd.  | 🚂 Sta.|  Tax   |  Ave.  | Chest  |   St.  |    GO    |
-|   |______|        |        |        |        |        |        |        |        |        |  (+200)  |
-| Visiting |  120$  |  100$  |        |  100$  |  200$  | (-200) |   60$  |   🧰   |   60$  |          |
+|   | JAIL |  Lake  |  Hotel |   ❓   |   Rd.  | 🚂 Sta.|  Tax   |  Ave.  | Chest  |   St.  |    GO!   |
+|   |______|        |        |        |        |        |        |        |        |        |          |
+| Visiting |  120$  |  100$  |        |  100$  |  200$  | (-200) |   60$  |   🧰   |   60$  |  (+200)  |
 |__________|________|________|________|________|________|________|________|________|________|__________|
-""")
-
+"""
+    print(board)
 def board_dinit():
     tile_data = [
     {"id": 0, "name": "GO", "type": "special", "price": 0, "rent": 0, "owner": None, "houses": 0},
