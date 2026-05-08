@@ -140,9 +140,11 @@ def game(players_data, playerlist, playercount):
         for i in range(playercount):
             curr_pdata = players_data[i]
             curr_pname = playerlist[i]
-            turn(curr_pname, playercount, curr_pdata, board_data, players_data)
-            check_bankrupt(curr_pdata)
-            check_win(playerlist, curr_pname)
+            if curr_pname in playerlist:
+                print(playerlist)
+                turn(curr_pname, playercount, curr_pdata, board_data, players_data)
+                playerlist = check_bankrupt(curr_pdata, playerlist)
+                check_win(playerlist)
 
 def turn(curr_pname, playercount, curr_pdata, board_data, players_data): ##process of a turn
     doubles_count = 0
@@ -395,6 +397,7 @@ def chance(curr_pdata, curr_tile, players_data, board_data, roll_total):
         yellow("Advance to GO! Collect 200$.")
         pass_go(curr_pdata)
         position = 0
+        time.sleep(2)
         return
     elif card == 2:
         red("Advance to Bidoof Valley. Collect 200$ if you pass GO.")
@@ -489,11 +492,12 @@ def chance(curr_pdata, curr_tile, players_data, board_data, roll_total):
 def comm_chest(curr_pdata, players_data, board_data):
     card = random.randint(1, 16)
     position = curr_pdata["position"]
-    slow_print("You drew a card from the chance deck...")
+    slow_print("You drew a card from the community chest deck...")
     if card == 1:
         yellow("Advance to GO! Collect 200$.")
         pass_go(curr_pdata)
         position = 0
+        time.sleep(2)
         return
     elif card == 2:
         magenta("Your video game 'Lankybox neighbourhood roleplay' was a success! Collect 200$.")
@@ -564,15 +568,21 @@ def special_tile(curr_pdata, curr_tile): ## other tiles like free parking, go to
     else:
         return
 
-def check_win(playerlist, curr_pname): ##WIP
+def check_win(playerlist): ##WIP
     if len(playerlist) == 1:
-        yellow(f"CONGRATULATIONS, {curr_pname}! You are the winner of this monopoly game!!!")
+        yellow(f"CONGRATULATIONS, {playerlist[0]}! You are the winner of this monopoly game!!!")
         exit()
+    elif len(playerlist) == 0:
+        red("Looks like nobody won...")
 
-def check_bankrupt(curr_pdata):
+def check_bankrupt(curr_pdata, playerlist):
     if curr_pdata["money"] < 0:
         red(f"{curr_pdata["name"]} went bankrupt!!")
-
+        curr_pdata.remove(curr_pdata["name"])
+        return playerlist
+    else:
+        return playerlist
+    
 def updateboard(curr_pdata, board_data, players_data, board):
     if curr_pdata["position"] == 10 and curr_pdata["jail"] == False:
         if board[4267] == " ":
@@ -583,6 +593,7 @@ def updateboard(curr_pdata, board_data, players_data, board):
         board[4268] = " "
     if curr_pdata["position"] <= 9 and curr_pdata["position"] > 0:
         pass
+
 def printboard(curr_pdata, board_data, players_data): ## keep in mind that there are 104 chars per line, 10 spaces wide per large square, 8 per small, 10 wide for side tiles
     #updateboard(curr_pdata, board_data, players_data, board) #🚢🟦 🐈🟧 🎩🟨 🐕🟩 🚙🟥 🐎🟪.   6th and 7th char for replacement for free parking 
     board = """
