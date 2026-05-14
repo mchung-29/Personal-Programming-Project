@@ -1,6 +1,6 @@
 ## Personal Programming Project -- Martin Chung
 import random, time, pygame, os, platform
-from colorist import ColorRGB, BgColorRGB, rgb, bg_rgb
+from colorist import rgb
 from time import sleep
 
 def main(): 
@@ -141,7 +141,6 @@ def game(players_data, playerlist, playercount):
             curr_pdata = players_data[i]
             curr_pname = playerlist[i]
             if curr_pname in playerlist:
-                print(playerlist)
                 turn(curr_pname, playercount, curr_pdata, board_data, players_data)
                 playerlist = check_bankrupt(curr_pdata, playerlist)
                 check_win(playerlist)
@@ -329,7 +328,8 @@ def buy_house(curr_pdata, curr_tile):
             curr_tile["rent"] = curr_tile["rent_levs"][curr_tile["houses"]]
             curr_tile["houses"] += 1
             green(f"Success! You now have {curr_tile["houses"]} house(s) on this property.")
-            time.sleep(2)
+            light_blue("Press enter to proceed.")
+            input()
 
 def check_owned(curr_tile): ## checks if a property tile is owned
     if curr_tile["owner"] == None:
@@ -487,7 +487,8 @@ def chance(curr_pdata, curr_tile, players_data, board_data, roll_total):
     else:
         green("Your building loan matures. Collect 150$!")
         curr_pdata["money"] += 150
-    time.sleep(3)
+    light_blue("Press enter to proceed.")
+    input()
 
 def comm_chest(curr_pdata, players_data, board_data):
     card = random.randint(1, 16)
@@ -557,7 +558,8 @@ def comm_chest(curr_pdata, players_data, board_data):
     else:
         gold("You inherit 100$!")
         curr_pdata["money"] += 100
-    time.sleep(3)
+    light_blue("Press enter to proceed")
+    input()
 
 def pass_go(curr_pdata):
     curr_pdata["money"] += 200
@@ -578,21 +580,51 @@ def check_win(playerlist): ##WIP
 def check_bankrupt(curr_pdata, playerlist):
     if curr_pdata["money"] < 0:
         red(f"{curr_pdata["name"]} went bankrupt!!")
-        curr_pdata.remove(curr_pdata["name"])
+        playerlist.remove(curr_pdata["name"])
         return playerlist
     else:
         return playerlist
     
 def updateboard(curr_pdata, board_data, players_data, board):
-    if curr_pdata["position"] == 10 and curr_pdata["jail"] == False:
-        if board[4267] == " ":
-            board[4267] = curr_pdata["icon"]
-            board[4268] = ""
-    else:
-        board[4267] = " "
-        board[4268] = " "
-    if curr_pdata["position"] <= 9 and curr_pdata["position"] > 0:
-        pass
+    row3 = "|          |        |        |        |        |        |        |        |        |        |          |"
+    slot = None
+    if curr_pdata["position"] >= 20 and curr_pdata["position"] <= 30:
+        slot = None
+        if curr_pdata["position"] == 20:
+            slot = 6
+        row3[slot].replace(" ", curr_pdata["icon"])
+        row3[slot + 1].replace(" ", "")
+    return row3
+
+def testprintboardnew(defaultrows):
+    light_blue("""_______________________________________________________________________________________________________
+|   Free   | Rathore| Chance |   Fu   | Bidoof | Farnham| Dream  |  Fox   |  Water |Fairplay|  Go to   |
+|  Parking |  Park  |   ❓   |   St.  | Valley | 🚂 Sta.| Island |   St.  | Works💧|  Ave.  |   JAIL   |""")
+        if curr_pdata["position"] >= 20 and curr_pdata["position"] <= 30:
+        slot = None
+        if curr_pdata["position"] == 20:
+            slot = 6
+        row3[slot].replace(" ", curr_pdata["icon"])
+        row3[slot + 1].replace(" ", "")
+
+    light_blue()
+    pass
+
+def boardSetup():
+    ## all tiles set to default before players land on them 
+    row3 = "|          |        |        |        |        |        |        |        |        |        |          |"
+    row8 = "|   200$   |                                                                                |   300$   |"
+    row12 = "|          |                                                                                |   300$   |"
+    row16 = "|    🧰    |                             ●●●●●●●●●●●●●●●●●●●●●●●                            |    🧰    |"
+    row20 = "|          |                        ●●●●●         ●●●●                                      |   320$   |"
+    row24 = "|   200$   |                                      ●●●●      ●●●●                            |   200$   |"
+    row28 = "|          |                       ●●●●●●        ●●●●●●●●●●●●●●●                            |          |"
+    row32 = "|          |                                      ●●●●                                      |          |"
+    row36 = "|   150$   |                                                                                |          |"
+    row40 = "|          |                                                                                |   400$   |"
+    row44 = "|   |______|        |        |        |        |        |        |        |        |        |          |"
+    defaultrows = [row3, row8, row12, row16, row20, row24, row28, row32, row36, row40, row44]
+    return defaultrows
 
 def printboard(curr_pdata, board_data, players_data): ## keep in mind that there are 104 chars per line, 10 spaces wide per large square, 8 per small, 10 wide for side tiles
     #updateboard(curr_pdata, board_data, players_data, board) #🚢🟦 🐈🟧 🎩🟨 🐕🟩 🚙🟥 🐎🟪.   6th and 7th char for replacement for free parking 
@@ -645,7 +677,7 @@ ________________________________________________________________________________
 | Visiting |  120$  |  100$  |        |  100$  |  200$  | (-200) |   60$  |   🧰   |   60$  |  (+200)  |
 |__________|________|________|________|________|________|________|________|________|________|__________|
 """
-    print(board)
+    light_blue(board)
 def board_dinit():
     tile_data = [
     {"id": 0, "name": "GO", "type": "special", "price": 0, "rent": 0, "owner": None, "houses": 0},
