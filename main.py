@@ -125,35 +125,36 @@ def var_assign(playercount): ## character and name selection
     slow_print("Selection Complete.") 
     time.sleep(1)
     slow_print("Let the game begin!")
-    time.sleep(1)
+    time.sleep(0.5)
     clear_screen()
     return players_data, namelist
 
 
 
-
 def game(players_data, playerlist, playercount):
     board_data = board_dinit()
-    bankrupt = []
-    game_running = True     ## will change when I implement checking for no remaining players
-    while game_running == True:
-        for i in range(playercount):
+    coordinates = coordinate()
+    i = 0
+    while True:
+        i = 0
+        while i < len(players_data):
             curr_pdata = players_data[i]
             curr_pname = playerlist[i]
-            if curr_pname in playerlist:
-                turn(curr_pname, playercount, curr_pdata, board_data, players_data)
-                playerlist = check_bankrupt(curr_pdata, playerlist)
-                check_win(playerlist)
+            turn(curr_pname, playercount, curr_pdata, board_data, players_data, coordinates)
+            playerlist = check_bankrupt(curr_pdata, playerlist)
+            if curr_pdata["money"] < 0:
+                players_data.pop(i)
+            else: i += 1
+            check_win(playerlist)
 
-def turn(curr_pname, playercount, curr_pdata, board_data, players_data): ##process of a turn
+def turn(curr_pname, playercount, curr_pdata, board_data, players_data, coordinates): ##process of a turn
     doubles_count = 0
     turn_active = True
     while turn_active == True:
-        clear_screen()
-        printboard(curr_pdata, board_data, players_data)
+        printboard(curr_pdata, board_data, players_data, coordinates)
         print_money(players_data, playercount)
         if curr_pdata["jail"] == True:
-            jail_turn(curr_pdata, board_data, players_data)
+            jail_turn(curr_pdata, board_data, players_data, coordinates)
             break
         your_turn(curr_pname, curr_pdata)
         is_doubles, roll_total = roll()
@@ -219,14 +220,14 @@ def prison(curr_pdata): ##sends someone to prison instantly
     curr_pdata["position"] = 10
     curr_pdata["jail"] = True
 
-def jail_turn(curr_pdata, board_data, players_data):
+def jail_turn(curr_pdata, board_data, players_data, coordinates):
     slow_print(f"{curr_pdata["name"]}, it's your JAIL turn!")
     if curr_pdata["jail_cards"] > 0:
         gold(f"You have {curr_pdata["jail_cards"]} Get out of jail free card(s).")
         blue("You can type 'use' to use a card. Otherwise, roll doubles py pressing enter.")
         choice = input().lower()
         clear_screen()
-        printboard()
+        printboard(curr_pdata, board_data, players_data, coordinates)
         if choice == "use":
             curr_pdata["jail_cards"] -= 1
             curr_pdata["jail"] = False
@@ -581,103 +582,104 @@ def check_bankrupt(curr_pdata, playerlist):
     if curr_pdata["money"] < 0:
         red(f"{curr_pdata["name"]} went bankrupt!!")
         playerlist.remove(curr_pdata["name"])
+        time.sleep(3)
         return playerlist
     else:
         return playerlist
+
+def printboard(curr_pdata, board_data, players_data, coordinates):
+    clear_screen()
+    rows = boardSetup()
+    for player in players_data:
+        pos = player["position"]
+        icon = player["icon"]
+        row_num, column_num = coordinates[pos]
+        line = rows[row_num]
+        rows[row_num] = line[:column_num] + icon + line[column_num + 2:]
+
+    for line in rows:
+        light_blue(line)
+
+
+
+def coordinate(): ## sets up all coordinates for start cuz im lazy like that to map out every individual coord
+    coords = {}
+
+    coords[20] = (3, 4)
+    for i in range(1, 10): #top
+        space_num = 20 + i
+        coords[space_num] = (3, 15 + (i-1) * 9)
+    coords[30] = (3, 95)
+
+    coords[10] = (44, 2) #bottom
+    for i in range(1, 10):
+        space_num = 10 - i
+        coords[space_num] = (44, 15 + (i - 1) * 9)
+    coords[0] = (44, 95)
+
+    leftRows = [40, 36, 32, 28, 24, 20, 17, 12, 8] 
+    for j, space_num in enumerate(range(11, 20)):
+        coords[space_num] = (leftRows[j], 4)
     
-def updateboard(curr_pdata, board_data, players_data, board):
-    row3 = "|          |        |        |        |        |        |        |        |        |        |          |"
-    slot = None
-    if curr_pdata["position"] >= 20 and curr_pdata["position"] <= 30:
-        slot = None
-        if curr_pdata["position"] == 20:
-            slot = 6
-        row3[slot].replace(" ", curr_pdata["icon"])
-        row3[slot + 1].replace(" ", "")
-    return row3
+    rightRows = [8, 12, 17, 20, 24, 28, 32, 36, 40]
+    for j, space_num in enumerate(range(31, 40)):
+        coords[space_num] = (rightRows[j], 94)
 
-def testprintboardnew(defaultrows):
-    light_blue("""_______________________________________________________________________________________________________
-|   Free   | Rathore| Chance |   Fu   | Bidoof | Farnham| Dream  |  Fox   |  Water |Fairplay|  Go to   |
-|  Parking |  Park  |   ❓   |   St.  | Valley | 🚂 Sta.| Island |   St.  | Works💧|  Ave.  |   JAIL   |""")
-        if curr_pdata["position"] >= 20 and curr_pdata["position"] <= 30:
-        slot = None
-        if curr_pdata["position"] == 20:
-            slot = 6
-        row3[slot].replace(" ", curr_pdata["icon"])
-        row3[slot + 1].replace(" ", "")
+    return coords
 
-    light_blue()
-    pass
-
-def boardSetup():
-    ## all tiles set to default before players land on them 
-    row3 = "|          |        |        |        |        |        |        |        |        |        |          |"
-    row8 = "|   200$   |                                                                                |   300$   |"
-    row12 = "|          |                                                                                |   300$   |"
-    row16 = "|    🧰    |                             ●●●●●●●●●●●●●●●●●●●●●●●                            |    🧰    |"
-    row20 = "|          |                        ●●●●●         ●●●●                                      |   320$   |"
-    row24 = "|   200$   |                                      ●●●●      ●●●●                            |   200$   |"
-    row28 = "|          |                       ●●●●●●        ●●●●●●●●●●●●●●●                            |          |"
-    row32 = "|          |                                      ●●●●                                      |          |"
-    row36 = "|   150$   |                                                                                |          |"
-    row40 = "|          |                                                                                |   400$   |"
-    row44 = "|   |______|        |        |        |        |        |        |        |        |        |          |"
-    defaultrows = [row3, row8, row12, row16, row20, row24, row28, row32, row36, row40, row44]
-    return defaultrows
-
-def printboard(curr_pdata, board_data, players_data): ## keep in mind that there are 104 chars per line, 10 spaces wide per large square, 8 per small, 10 wide for side tiles
+def boardSetup(): ## keep in mind that there are 104 chars per line, 10 spaces wide per large square, 8 per small, 10 wide for side tiles
     #updateboard(curr_pdata, board_data, players_data, board) #🚢🟦 🐈🟧 🎩🟨 🐕🟩 🚙🟥 🐎🟪.   6th and 7th char for replacement for free parking 
-    board = """
-_______________________________________________________________________________________________________
-|   Free   | Rathore| Chance |   Fu   | Bidoof | Farnham| Dream  |  Fox   |  Water |Fairplay|  Go to   |
-|  Parking |  Park  |   ❓   |   St.  | Valley | 🚂 Sta.| Island |   St.  | Works💧|  Ave.  |   JAIL   |
-|          |        |        |        |        |        |        |        |        |        |          |
-|    🚗    |  220$  |        |  220$  |  240$  |  200$  |  260$  |  260$  |  150$  |  280$  |   🚔🚨   |
-|__________|________|________|________|________|________|________|________|________|________|__________|
-| Anthian  |                                                                                | Stickmin |
-|    St.   |                                                                                |   Ave.   |
-|   200$   |                                                                                |   300$   |
-|__________|                                                                                |__________|
-|  Snowdin |                                                                                | Solstice |
-|   180$   |                                                                                |    Rd.   |
-|          |                                                                                |   300$   |
-|__________|                                      ●●●●                                      |__________|
-|   Comm.  |                                      ●●●●                                      |  Comm.   |
-|   Chest  |                                ●●●●●●●●●●●●●●●●                                |  Chest   |
-|    🧰    |                             ●●●●●●●●●●●●●●●●●●●●●●●                            |    🧰    |
-|__________|                          ●●●●●●●●●   ●●●●                                      |__________|
-| Paul Mall|                         ●●●●         ●●●●                                      |  Stardew |
-|   180$   |                        ●●●●●         ●●●●                                      |  Valley  |
-|          |                        ●●●●●         ●●●●                                      |   320$   |
-|__________|                         ●●●●         ●●●●                                      |__________|
-| Dumfries |                          ●●●●●●●●●●●●●●●●●●●●●●●                               | McCreery |
-| 🚂 Sta.  |                              ●●●●●●●●●●●●●●●●●●●●●●                            |  🚂 Sta. |
-|   200$   |                                      ●●●●      ●●●●                            |   200$   |
-|__________|                                      ●●●●      ●●●●●                           |__________|
-|Alvin Ave.|                                      ●●●●      ●●●●●                           |  Chance  |
-|   160$   |                       ●●●●           ●●●●      ●●●●●                           |    ❓    |
-|          |                       ●●●●●●        ●●●●●●●●●●●●●●●                            |          |
-|__________|                       ●●●●●●●●●●●●●●●●●●●●●●●●●●                               |__________|
-|Lanky Lane|                           ●●●●●●●●●●●●●●●●●●                                   | Hallfair |
-|   140$   |                                      ●●●●                                      |   400$   |
-|          |                                      ●●●●                                      |          |
-|__________|                                                                                |__________|
-| Electric |                                                                                |Luxury Tax|
-|  Comp.💡 |                                                                                | 💍(-100) |
-|   150$   |                                                                                |          |
-|__________|                                                                                |__________|
-|  Box St. |                                                                                |  Langley |
-|   140$   |                                                                                |   Inc.   |
-|          |                                                                                |   400$   |
-|__________|________________________________________________________________________________|__________|
-|   |      |  Green |  Yoyle | Chance |  Baron |  Tjiu  | Income |  Birch |  Comm. |  Paper |          |
-|   | JAIL |  Lake  |  Hotel |   ❓   |   Rd.  | 🚂 Sta.|  Tax   |  Ave.  | Chest  |   St.  |    GO!   |
-|   |______|        |        |        |        |        |        |        |        |        |          |
-| Visiting |  120$  |  100$  |        |  100$  |  200$  | (-200) |   60$  |   🧰   |   60$  |  (+200)  |
-|__________|________|________|________|________|________|________|________|________|________|__________|
-"""
-    light_blue(board)
+    rows = [
+        "_______________________________________________________________________________________________________", 
+        "|   Free   | Rathore| Chance |   Fu   | Bidoof | Farnham| Dream  |  Fox   |  Water |Fairplay|  Go to   |", 
+        "|  Parking |  Park  |   ❓   |   St.  | Valley | 🚂 Sta.| Island |   St.  | Works💧|  Ave.  |   JAIL   |", 
+        "|          |        |        |        |        |        |        |        |        |        |          |", 
+        "|    🚗    |  220$  |        |  220$  |  240$  |  200$  |  260$  |  260$  |  150$  |  280$  |   🚔🚨   |", 
+        "|__________|________|________|________|________|________|________|________|________|________|__________|", 
+        "| Anthian  |                                                                                | Stickmin |", 
+        "|    St.   |                                                                                |   Ave.   |", 
+        "|   200$   |                                                                                |   300$   |", 
+        "|__________|                                                                                |__________|", 
+        "|  Snowdin |                                                                                | Solstice |", 
+        "|   180$   |                                                                                |    Rd.   |", 
+        "|          |                                                                                |          |", 
+        "|__________|                                      ●●●●                                      |__________|", 
+        "|   Comm.  |                                      ●●●●                                      |   Comm.  |", 
+        "|   Chest  |                                ●●●●●●●●●●●●●●●●                                |   Chest  |", 
+        "|    🧰    |                             ●●●●●●●●●●●●●●●●●●●●●●●                            |    🧰    |", 
+        "|__________|                          ●●●●●●●●●   ●●●●                                      |__________|", 
+        "| Paul Mall|                         ●●●●         ●●●●                                      | Stardew  |", 
+        "|   180$   |                        ●●●●●         ●●●●                                      |  Valley  |", 
+        "|          |                        ●●●●●         ●●●●                                      |          |", 
+        "|__________|                         ●●●●         ●●●●                                      |__________|", 
+        "| Dumfries |                          ●●●●●●●●●●●●●●●●●●●●●●●                               | McCreery |", 
+        "| 🚂 Sta.  |                              ●●●●●●●●●●●●●●●●●●●●●●                            | 🚂 Sta.  |", 
+        "|   200$   |                                      ●●●●      ●●●●                            |          |", 
+        "|__________|                                      ●●●●      ●●●●●                           |__________|", 
+        "|Alvin Ave.|                                      ●●●●      ●●●●●                           |  Chance  |", 
+        "|   160$   |                       ●●●●           ●●●●      ●●●●●                           |    ❓    |", 
+        "|          |                       ●●●●●●        ●●●●●●●●●●●●●●●                            |          |",
+        "|__________|                       ●●●●●●●●●●●●●●●●●●●●●●●●●●                               |__________|", 
+        "|Lanky Lane|                           ●●●●●●●●●●●●●●●●●●                                   | Hallfair |", 
+        "|   140$   |                                      ●●●●                                      |   400$   |", 
+        "|          |                                      ●●●●                                      |          |", 
+        "|__________|                                                                                |__________|", 
+        "| Electric |                                                                                |Luxury Tax|", 
+        "|  Comp.💡 |                                                                                | 💍(-100) |", 
+        "|   150$   |                                                                                |          |", 
+        "|__________|                                                                                |__________|", 
+        "|  Box St. |                                                                                |  Langley |", 
+        "|   140$   |                                                                                |   Inc.   |", 
+        "|          |                                                                                |          |", 
+        "|__________|________________________________________________________________________________|__________|", 
+        "|   |      |  Green |  Yoyle | Chance |  Baron |  Tjiu  | Income |  Birch |  Comm. |  Paper |          |", 
+        "|   | JAIL |  Lake  |  Hotel |   ❓   |   Rd.  | 🚂 Sta.|  Tax   |  Ave.  | Chest  |   St.  |    GO!   |",
+        "|   |______|        |        |        |        |        |        |        |        |        |          |", 
+        "| Visiting |  120$  |  100$  |        |  100$  |  200$  | (-200) |   60$  |   🧰   |   60$  |  (+200)  |", 
+        "|__________|________|________|________|________|________|________|________|________|________|__________|" 
+    ]
+    return rows
+
 def board_dinit():
     tile_data = [
     {"id": 0, "name": "GO", "type": "special", "price": 0, "rent": 0, "owner": None, "houses": 0},
