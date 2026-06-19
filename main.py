@@ -151,7 +151,7 @@ def turn(curr_pname, playercount, curr_pdata, board_data, players_data, coordina
     doubles_count = 0
     turn_active = True
     while turn_active == True:
-        printboard(curr_pdata, board_data, players_data, coordinates)
+        printboard(players_data, coordinates)
         print_money(players_data, playercount)
         if curr_pdata["jail"] == True:
             jail_turn(curr_pdata, board_data, players_data, coordinates)
@@ -587,7 +587,7 @@ def check_bankrupt(curr_pdata, playerlist):
     else:
         return playerlist
 
-def printboard(curr_pdata, board_data, players_data, coordinates):
+def printboard(players_data, coordinates):
     clear_screen()
     rows = boardSetup()
     for player in players_data:
