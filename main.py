@@ -24,12 +24,12 @@ def intro(): ##prints the game title
     gr_lines = ["███╗░░░███╗░█████╗░███╗░░██╗░█████╗░██████╗░░█████╗░██╗░░░░░██╗░░░██╗", "████╗░████║██╔══██╗████╗░██║██╔══██╗██╔══██╗██╔══██╗██║░░░░░╚██╗░██╔╝", "██╔████╔██║██║░░██║██╔██╗██║██║░░██║██████╔╝██║░░██║██║░░░░░░╚████╔╝░", "██║╚██╔╝██║██║░░██║██║╚████║██║░░██║██╔═══╝░██║░░██║██║░░░░░░░╚██╔╝░░", "██║░╚═╝░██║╚█████╔╝██║░╚███║╚█████╔╝██║░░░░░╚█████╔╝███████╗░░░██║░░░", "╚═╝░░░░░╚═╝░╚════╝░╚═╝░░╚══╝░╚════╝░╚═╝░░░░░░╚════╝░╚══════╝░░░╚═╝░░░"]
     for gold_line in gold_lines:
         gold(gold_line)
-        time.sleep(0.1)
+        time.sleep(0.05)
     time.sleep(0.2)
     print()
     for green_line in gr_lines:
         green(green_line)
-        time.sleep(0.1)
+        time.sleep(0.05)
     slow_print(" " * 21 + "<PRESS ENTER TO PLAY>")
     input()
 
@@ -164,11 +164,16 @@ def turn(curr_pname, playercount, curr_pdata, board_data, players_data, coordina
             turn_active = False
 
 def print_money(players_data, playercount):
+    print()
+    yellow("Money:".center(104))
+    print()
     text = ""
     for i in range(playercount):
         pname = players_data[i]["name"]
         money = str(players_data[i]["money"])
-        text += f"{pname}: {money}$    "
+        text += f"{pname}: {money}$"
+        if i < (playercount - 1):
+            text += "    "
     text += "\n"
     yellow(text.center(104))
 
